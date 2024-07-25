@@ -29,7 +29,7 @@ def log_event(env, message):
     """Helper function to log events with the current simulation time."""
     print(f'[{env.now:.2f} minutes] {message}')
 
-class ContainerTerminal:
+class ContainerSimulation:
     def __init__(self, env):
         """Initialize the container terminal with resources and a container queue."""
         self.env = env
@@ -53,7 +53,7 @@ class ContainerTerminal:
             yield self.env.timeout(TIME_TO_TRANSPORT_CONTAINER)  # Time taken to transport one container
             log_event(self.env, f'Truck finishes transporting a container for Vessel {vessel_id}')
 
-    def handle_vessel(self, vessel_id):
+    def process_vessel(self, vessel_id):
         """Process to handle the entire vessel operation from arrival to departure."""
         log_event(self.env, f'Vessel {vessel_id} arrives')
         with self.berths.request() as berth_request:
@@ -69,20 +69,20 @@ class ContainerTerminal:
 
             log_event(self.env, f'Vessel {vessel_id} leaves')
 
-def vessel_generator(env, terminal):
+def vessel_arrival_generator(env, terminal):
     """Generate vessels arriving at the terminal."""
     vessel_id = 0
     while True:
         yield env.timeout(random.expovariate(1 / INTER_ARRIVAL_TIME) * 60)  # Time until next vessel arrival
         vessel_id += 1
-        env.process(terminal.handle_vessel(vessel_id))  # Handle the arriving vessel
+        env.process(terminal.process_vessel(vessel_id))  # Handle the arriving vessel
 
 def main():
     """Main function to set up and run the simulation."""
     random.seed(RANDOM_SEED)
     env = simpy.Environment()  # Create the SimPy environment
-    terminal = ContainerTerminal(env)  # Create the container terminal
-    env.process(vessel_generator(env, terminal))  # Start the vessel generator
+    terminal = ContainerSimulation(env)  # Create the container terminal
+    env.process(vessel_arrival_generator(env, terminal))  # Start the vessel generator
     env.run(until=SIMULATION_TIME)  # Run the simulation
 
 if __name__ == '__main__':
